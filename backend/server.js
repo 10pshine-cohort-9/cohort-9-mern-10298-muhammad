@@ -19,6 +19,13 @@ app.use(cors());
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/notes', noteRoutes);
+
+// Global Error Handler
+app.use(errorHandler);
+
 // Initialize Database and start server
 const startServer = async () => {
   try {

@@ -53,11 +53,20 @@ export const updateNote = async (req, res, next) => {
     }
 
     if (updates.length > 0) {
-      values.push(id);
-      await pool.query(`UPDATE notes SET ${updates.join(', ')} WHERE id = ?`, values);
+      values.push(id, req.user.id);
+      const [updateResult] = await pool.query(`UPDATE notes SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values);
+      
+      if (updateResult.affectedRows === 0) {
+        return res.status(404).json({ success: false, error: 'Note not found or unauthorized' });
+      }
     }
 
-    const [updatedNote] = await pool.query('SELECT * FROM notes WHERE id = ?', [id]);
+    const [updatedNote] = await pool.query('SELECT * FROM notes WHERE id = ? AND user_id = ?', [id, req.user.id]);
+    
+    if (updatedNote.length === 0) {
+      return res.status(404).json({ success: false, error: 'Note not found or unauthorized' });
+    }
+    
     res.status(200).json({ success: true, data: updatedNote[0] });
   } catch (error) {
     next(error);
