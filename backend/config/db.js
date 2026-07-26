@@ -43,6 +43,7 @@ export const initDb = async () => {
     connection.release();
   } catch (error) {
     console.error('❌ Error initializing database tables:', error.message);
+    throw error;
   }
 };
 

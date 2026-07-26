@@ -19,17 +19,19 @@ app.use(cors());
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 
-// Initialize Database
-initDb();
+// Initialize Database and start server
+const startServer = async () => {
+  try {
+    await initDb();
+    
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      logger.info(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    logger.error('❌ Failed to start server:', err.message);
+    process.exit(1);
+  }
+};
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/notes', noteRoutes);
-
-// Global Error Handler
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-});
+startServer();

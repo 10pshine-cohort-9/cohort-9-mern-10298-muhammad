@@ -35,7 +35,7 @@ const Dashboard = () => {
             <Plus size={18} /> New Note
           </button>
           
-          <button onClick={handleLogout} className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+          <button onClick={handleLogout} aria-label="Log out" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
              <LogOut size={18} />
           </button>
         </div>

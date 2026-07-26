@@ -40,10 +40,22 @@ export const updateNote = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Note not found or unauthorized' });
     }
 
-    await pool.query(
-      'UPDATE notes SET title = ?, content = ? WHERE id = ?',
-      [title || note[0].title, content !== undefined ? content : note[0].content, id]
-    );
+    const updates = [];
+    const values = [];
+    
+    if (title !== undefined) {
+      updates.push('title = ?');
+      values.push(title);
+    }
+    if (content !== undefined) {
+      updates.push('content = ?');
+      values.push(content);
+    }
+
+    if (updates.length > 0) {
+      values.push(id);
+      await pool.query(`UPDATE notes SET ${updates.join(', ')} WHERE id = ?`, values);
+    }
 
     const [updatedNote] = await pool.query('SELECT * FROM notes WHERE id = ?', [id]);
     res.status(200).json({ success: true, data: updatedNote[0] });
