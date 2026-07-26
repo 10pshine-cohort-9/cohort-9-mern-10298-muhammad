@@ -11,6 +11,10 @@ const Dashboard = () => {
     { id: 3, title: 'Database Schema Idea', content: 'Users table (id, name, email, password_hash). Notes table (id, user_id, title, content, created_at).', date: 'Oct 22, 2026' },
   ]);
 
+  const handleDelete = (id) => {
+    setNotes(notes.filter(note => note.id !== id));
+  };
+
   const handleLogout = () => {
     // In a real app, clear tokens/state here
     navigate('/login');
@@ -27,7 +31,7 @@ const Dashboard = () => {
         </div>
         
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <button className="btn-primary" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="btn-primary" onClick={() => alert('New note creation coming soon!')} style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={18} /> New Note
           </button>
           
@@ -50,10 +54,10 @@ const Dashboard = () => {
             <div className="note-footer">
               <span>{note.date}</span>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn-icon" title="Edit Note">
+                <button className="btn-icon" title="Edit Note" onClick={() => alert('Edit functionality coming soon!')}>
                   <Edit2 size={16} />
                 </button>
-                <button className="btn-icon" title="Delete Note" style={{ color: 'var(--error)' }}>
+                <button className="btn-icon" title="Delete Note" onClick={() => handleDelete(note.id)} style={{ color: 'var(--error)' }}>
                   <Trash2 size={16} />
                 </button>
               </div>

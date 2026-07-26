@@ -10,9 +10,6 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // In a real app, you'd call your backend API here
-    console.log('Authenticating...', { email, password });
-    
     // Simulate successful login/signup and redirect
     setTimeout(() => {
       navigate('/dashboard');
@@ -30,8 +27,9 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <div className="input-group">
-              <label>Full Name</label>
+              <label htmlFor="fullName">Full Name</label>
               <input 
+                id="fullName"
                 type="text" 
                 className="input-field" 
                 placeholder="John Doe"
@@ -41,9 +39,10 @@ const Login = () => {
           )}
           
           <div className="input-group">
-            <label>Email Address</label>
+            <label htmlFor="email">Email Address</label>
             <div style={{ position: 'relative' }}>
                <input 
+                  id="email"
                   type="email" 
                   className="input-field" 
                   placeholder="you@example.com"
@@ -55,8 +54,9 @@ const Login = () => {
           </div>
 
           <div className="input-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input 
+              id="password"
               type="password" 
               className="input-field" 
               placeholder="••••••••"
@@ -74,12 +74,13 @@ const Login = () => {
 
         <div style={{ marginTop: '25px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <span 
+          <button 
+            type="button"
             onClick={() => setIsLogin(!isLogin)} 
-            style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: '600' }}
+            style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: '600', background: 'none', border: 'none', padding: 0, fontSize: '0.9rem', fontFamily: 'inherit' }}
           >
             {isLogin ? 'Sign up here' : 'Log in here'}
-          </span>
+          </button>
         </div>
       </div>
     </div>
