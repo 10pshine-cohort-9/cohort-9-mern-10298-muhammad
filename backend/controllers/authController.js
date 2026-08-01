@@ -30,6 +30,9 @@ export const signup = async (req, res, next) => {
       data: { id: result.insertId, fullName, email, token }
     });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ success: false, error: 'User already exists' });
+    }
     next(error);
   }
 };
