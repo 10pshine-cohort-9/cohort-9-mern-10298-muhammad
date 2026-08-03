@@ -7,5 +7,6 @@ reviews:
       - main
       - develop
   path_instructions:
-    - path: "**/*"
+    - path: "**/*"            
       instructions: "Flag missing TypeScript types as HIGH. Flag async/await without try-catch as MEDIUM. Check React component structure and missing prop validation."
+ 
