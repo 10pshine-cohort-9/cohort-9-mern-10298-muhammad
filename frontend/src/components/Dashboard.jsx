@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  
+
   // All our state variables
   const [notes, setNotes] = useState([]);
   const [showNew, setShowNew] = useState(false);
@@ -35,7 +35,12 @@ const Dashboard = () => {
         });
         const data = await response.json();
         if (response.ok) {
-          setNotes(data.data);
+          if (Array.isArray(data.data)) {
+            setNotes(data.data);
+          } else {
+            console.error('Invalid data format received');
+            setNotes([]);
+          }
         } else {
           localStorage.removeItem('token');
           navigate('/login');
@@ -49,12 +54,20 @@ const Dashboard = () => {
 
   // Handle Deleting a note
   const handleDelete = async (id) => {
-    const token = localStorage.getItem('token');
-    await fetch(`${import.meta.env.VITE_API_URL}/notes/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    setNotes(notes.filter(note => note.id !== id));
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/notes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setNotes(notes.filter(note => note.id !== id));
+      } else {
+        alert('Failed to delete note on server');
+      }
+    } catch (err) {
+      alert('Network error while deleting note');
+    }
   };
 
   // Handle Logging out
@@ -65,11 +78,16 @@ const Dashboard = () => {
 
   const handleSaveNote = async () => {
     const token = localStorage.getItem('token');
-    const payload = { title: newTitle, content: newContent };
+    const payload = { title: newTitle?.trim(), content: newContent?.trim() };
+
+    if (!payload.title || !payload.content) {
+      alert('Title and content are required.');
+      return;
+    }
     
     const method = editingId ? 'PUT' : 'POST';
-    const url = editingId 
-      ? `${import.meta.env.VITE_API_URL}/notes/${editingId}` 
+    const url = editingId
+      ? `${import.meta.env.VITE_API_URL}/notes/${editingId}`
       : `${import.meta.env.VITE_API_URL}/notes`;
 
     try {
@@ -81,7 +99,7 @@ const Dashboard = () => {
         },
         body: JSON.stringify(payload),
       });
-      
+
       const data = await res.json();
 
       if (res.ok) {
@@ -90,7 +108,7 @@ const Dashboard = () => {
         } else {
           setNotes(prev => [data.data, ...prev]);
         }
-        
+
         setShowNew(false);
         setEditingId(null);
         setNewTitle('');
@@ -115,14 +133,14 @@ const Dashboard = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <button 
-              className="btn-primary" 
+            <button
+              className="btn-primary"
               onClick={() => {
                 setEditingId(null);
                 setNewTitle('');
                 setNewContent('');
                 setShowNew(true);
-              }} 
+              }}
               style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Plus size={18} /> New Note
@@ -147,9 +165,9 @@ const Dashboard = () => {
               <div className="note-footer">
                 <span>{note.date || new Date(note.created_at).toLocaleDateString()}</span>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    className="btn-icon" 
-                    title="Edit Note" 
+                  <button
+                    className="btn-icon"
+                    title="Edit Note"
                     onClick={() => {
                       setNewTitle(note.title);
                       setNewContent(note.content);
