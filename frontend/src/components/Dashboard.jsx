@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
 
@@ -11,16 +11,20 @@ const Dashboard = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const lastActiveElement = useRef(null);
 
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
         setShowNew(false);
+        setTimeout(() => lastActiveElement.current?.focus(), 0);
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
+
   useEffect(() => {
     const fetchNotes = async () => {
       const token = localStorage.getItem('token');
@@ -35,7 +39,7 @@ const Dashboard = () => {
         });
         const data = await response.json();
         if (response.ok) {
-          if (Array.isArray(data.data)) {
+          if (Array.isArray(data.data) && data.data.every(n => n.title && n.content && (n.date || n.created_at))) {
             setNotes(data.data);
           } else {
             console.error('Invalid data format received');
@@ -61,7 +65,7 @@ const Dashboard = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        setNotes(notes.filter(note => note.id !== id));
+        setNotes(prev => prev.filter(note => note.id !== id));
       } else {
         alert('Failed to delete note on server');
       }
@@ -77,14 +81,17 @@ const Dashboard = () => {
   };
 
   const handleSaveNote = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
     const token = localStorage.getItem('token');
     const payload = { title: newTitle?.trim(), content: newContent?.trim() };
 
     if (!payload.title || !payload.content) {
       alert('Title and content are required.');
+      setIsSaving(false);
       return;
     }
-    
+
     const method = editingId ? 'PUT' : 'POST';
     const url = editingId
       ? `${import.meta.env.VITE_API_URL}/notes/${editingId}`
@@ -104,7 +111,7 @@ const Dashboard = () => {
 
       if (res.ok) {
         if (editingId) {
-          setNotes(notes.map(n => (n.id === editingId ? data.data : n)));
+          setNotes(prev => prev.map(n => (n.id === editingId ? data.data : n)));
         } else {
           setNotes(prev => [data.data, ...prev]);
         }
@@ -113,11 +120,14 @@ const Dashboard = () => {
         setEditingId(null);
         setNewTitle('');
         setNewContent('');
+        setTimeout(() => lastActiveElement.current?.focus(), 0);
       } else {
         alert(data.error || 'Could not save note');
       }
     } catch (err) {
       alert('Network error. Could not save note.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -135,7 +145,8 @@ const Dashboard = () => {
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
             <button
               className="btn-primary"
-              onClick={() => {
+              onClick={(e) => {
+                lastActiveElement.current = e.currentTarget;
                 setEditingId(null);
                 setNewTitle('');
                 setNewContent('');
@@ -168,7 +179,8 @@ const Dashboard = () => {
                   <button
                     className="btn-icon"
                     title="Edit Note"
-                    onClick={() => {
+                    onClick={(e) => {
+                      lastActiveElement.current = e.currentTarget;
                       setNewTitle(note.title);
                       setNewContent(note.content);
                       setEditingId(note.id);
@@ -219,10 +231,13 @@ const Dashboard = () => {
             </div>
 
             <div className="modal-actions">
-              <button className="btn-primary" onClick={handleSaveNote}>
-                {editingId ? 'Update' : 'Save'}
+              <button className="btn-primary" onClick={handleSaveNote} disabled={isSaving}>
+                {isSaving ? 'Saving...' : (editingId ? 'Update' : 'Save')}
               </button>
-              <button className="btn-secondary" onClick={() => setShowNew(false)}>
+              <button className="btn-secondary" onClick={() => {
+                setShowNew(false);
+                setTimeout(() => lastActiveElement.current?.focus(), 0);
+              }}>
                 Cancel
               </button>
             </div>
