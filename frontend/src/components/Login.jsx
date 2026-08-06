@@ -4,20 +4,20 @@ import { Mail, Lock, ArrowRight } from 'lucide-react';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [fullName, setFullName] = useState(''); // NEW: state for Full Name
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // NEW: state for red error warnings
+  const [error, setError] = useState('');
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear any previous errors when they click submit
+    setError('');
 
     try {
       // 1. Determine if we are logging in or signing up
-      const endpoint = isLogin ? 'http://localhost:5000/api/auth/login' : 'http://localhost:5000/api/auth/signup';
+      const endpoint = isLogin ? `${import.meta.env.VITE_API_URL}/auth/login` : `${import.meta.env.VITE_API_URL}/auth/signup`;
 
       // 2. Prepare the data to send to the backend
       const bodyData = isLogin ? { email, password } : { fullName, email, password };
@@ -46,19 +46,6 @@ const Login = () => {
     }
   };
 
-  /* const [isLogin, setIsLogin] = useState(true);
-   const [email, setEmail] = useState('');
-   const [password, setPassword] = useState('');
-   const navigate = useNavigate();
- 
-   const handleSubmit = (e) => {
-     e.preventDefault();
-     // Simulate successful login/signup and redirect
-     setTimeout(() => {
-       navigate('/dashboard');
-     }, 800);
-   };
- */
   return (
     <div className="auth-container animate-fade-in">
       <div className="glass-card auth-box">
@@ -68,8 +55,7 @@ const Login = () => {
         </p>
 
         <form onSubmit={handleSubmit}>
-          {/* NEW: If there is an error, show a red warning box */}
-          {error && <div style={{ color: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '5px', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
+          {error && <div role="alert" style={{ color: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '5px', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
 
           {!isLogin && (
             <div className="input-group">
@@ -79,8 +65,8 @@ const Login = () => {
                 type="text"
                 className="input-field"
                 placeholder="John Doe"
-                value={fullName} // NEW: Bind this input to our new state
-                onChange={(e) => setFullName(e.target.value)} // NEW: Update state on type
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 required
               />
             </div>

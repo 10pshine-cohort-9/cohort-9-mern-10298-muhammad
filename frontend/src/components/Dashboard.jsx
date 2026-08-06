@@ -10,9 +10,17 @@ const Dashboard = () => {
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
-  const [editingId, setEditingId] = useState(null); // Tracks if we are editing an existing note
+  const [editingId, setEditingId] = useState(null);
 
-  // Fetch all notes when the dashboard loads
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setShowNew(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
   useEffect(() => {
     const fetchNotes = async () => {
       const token = localStorage.getItem('token');
@@ -22,7 +30,7 @@ const Dashboard = () => {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/notes', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/notes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -42,7 +50,7 @@ const Dashboard = () => {
   // Handle Deleting a note
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token');
-    await fetch(`http://localhost:5000/api/notes/${id}`, {
+    await fetch(`${import.meta.env.VITE_API_URL}/notes/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -55,44 +63,43 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  // Handle Saving (Both Create and Edit)
   const handleSaveNote = async () => {
     const token = localStorage.getItem('token');
     const payload = { title: newTitle, content: newContent };
     
-    // If we have an editingId, it's a PUT request. Otherwise, it's a POST request.
     const method = editingId ? 'PUT' : 'POST';
     const url = editingId 
-      ? `http://localhost:5000/api/notes/${editingId}` 
-      : 'http://localhost:5000/api/notes';
+      ? `${import.meta.env.VITE_API_URL}/notes/${editingId}` 
+      : `${import.meta.env.VITE_API_URL}/notes`;
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    
-    const data = await res.json();
-
-    if (res.ok) {
-      if (editingId) {
-        // Replace the old note with the newly updated one in the UI
-        setNotes(notes.map(n => (n.id === editingId ? data.data : n)));
-      } else {
-        // Add the brand new note to the UI
-        setNotes([...notes, data.data]);
-      }
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
       
-      // Close and reset the modal
-      setShowNew(false);
-      setEditingId(null);
-      setNewTitle('');
-      setNewContent('');
-    } else {
-      alert(data.error || 'Could not save note');
+      const data = await res.json();
+
+      if (res.ok) {
+        if (editingId) {
+          setNotes(notes.map(n => (n.id === editingId ? data.data : n)));
+        } else {
+          setNotes(prev => [data.data, ...prev]);
+        }
+        
+        setShowNew(false);
+        setEditingId(null);
+        setNewTitle('');
+        setNewContent('');
+      } else {
+        alert(data.error || 'Could not save note');
+      }
+    } catch (err) {
+      alert('Network error. Could not save note.');
     }
   };
 
@@ -162,11 +169,10 @@ const Dashboard = () => {
         </main>
       </div>
 
-      {/* ---------- NOTE MODAL (Used for both Create and Edit) ---------- */}
       {showNew && (
         <div className="modal-backdrop">
-          <div className="glass-card modal-content">
-            <h2 className="modal-title">{editingId ? 'Edit note' : 'Create a new note'}</h2>
+          <div className="glass-card modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <h2 id="modal-title" className="modal-title">{editingId ? 'Edit note' : 'Create a new note'}</h2>
 
             <div className="input-group">
               <label htmlFor="newTitle">Title</label>
@@ -175,6 +181,7 @@ const Dashboard = () => {
                 className="input-field"
                 placeholder="My awesome note"
                 value={newTitle}
+                autoFocus
                 onChange={e => setNewTitle(e.target.value)}
                 required
               />
