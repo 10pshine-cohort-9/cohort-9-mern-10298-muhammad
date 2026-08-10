@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -86,7 +88,7 @@ const Dashboard = () => {
     const token = localStorage.getItem('token');
     const payload = { title: newTitle?.trim(), content: newContent?.trim() };
 
-    if (!payload.title || !payload.content) {
+    if (!payload.title || !payload.content || payload.content === '<p><br></p>') {
       alert('Title and content are required.');
       setIsSaving(false);
       return;
@@ -169,7 +171,9 @@ const Dashboard = () => {
               <div>
                 <h3 className="note-title">{note.title}</h3>
                 <p className="note-preview">
-                  {note.content.length > 100 ? note.content.substring(0, 100) + '...' : note.content}
+                  {note.content.replace(/<[^>]+>/g, '').length > 100 
+                    ? note.content.replace(/<[^>]+>/g, '').substring(0, 100) + '...' 
+                    : note.content.replace(/<[^>]+>/g, '')}
                 </p>
               </div>
 
@@ -217,16 +221,14 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: '50px' }}>
               <label htmlFor="newContent">Content</label>
-              <textarea
-                id="newContent"
-                className="input-field"
-                rows={4}
-                placeholder="What do you want to remember?"
+              <ReactQuill
+                theme="snow"
                 value={newContent}
-                onChange={e => setNewContent(e.target.value)}
-                required
+                onChange={setNewContent}
+                placeholder="What do you want to remember?"
+                style={{ height: '150px' }}
               />
             </div>
 
