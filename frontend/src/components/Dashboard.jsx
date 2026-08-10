@@ -13,7 +13,6 @@ const extractTextFromHTML = (html) => {
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  // All our state variables
   const [notes, setNotes] = useState([]);
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -64,7 +63,6 @@ const Dashboard = () => {
     fetchNotes();
   }, [navigate]);
 
-  // Handle Deleting a note
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('token');
@@ -82,7 +80,6 @@ const Dashboard = () => {
     }
   };
 
-  // Handle Logging out
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
