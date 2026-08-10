@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -41,7 +41,7 @@ const Login = () => {
       localStorage.setItem('token', data.data.token);
       navigate('/dashboard');
 
-    } catch (err) {
+    } catch {
       setError('Failed to connect to the server');
     }
   };

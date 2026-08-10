@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 
 const extractTextFromHTML = (html) => {
   if (!html) return '';
@@ -57,7 +57,7 @@ const Dashboard = () => {
           localStorage.removeItem('token');
           navigate('/login');
         }
-      } catch (err) {
+      } catch {
         console.error('Failed to fetch notes');
       }
     };
@@ -77,7 +77,7 @@ const Dashboard = () => {
       } else {
         alert('Failed to delete note on server');
       }
-    } catch (err) {
+    } catch {
       alert('Network error while deleting note');
     }
   };
@@ -133,7 +133,7 @@ const Dashboard = () => {
       } else {
         alert(data.error || 'Could not save note');
       }
-    } catch (err) {
+    } catch {
       alert('Network error. Could not save note.');
     } finally {
       setIsSaving(false);
