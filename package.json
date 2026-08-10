@@ -1,6 +1,9 @@
 {
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "sonar": "sonar-scanner"
+    "sonar": "sonar-scanner-npm"
   },
   "devDependencies": {
     "sonarqube-scanner": "^5.0.0"

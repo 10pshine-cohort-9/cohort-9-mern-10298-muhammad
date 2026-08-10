@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
-import ReactQuill from 'react-quill';
+import ReactQuill from 'react-quill-new';
 import 'react-quill/dist/quill.snow.css';
+
+const extractTextFromHTML = (html) => {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent.trim();
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -87,8 +93,9 @@ const Dashboard = () => {
     setIsSaving(true);
     const token = localStorage.getItem('token');
     const payload = { title: newTitle?.trim(), content: newContent?.trim() };
+    const textContent = extractTextFromHTML(payload.content);
 
-    if (!payload.title || !payload.content || payload.content === '<p><br></p>') {
+    if (!payload.title || !textContent) {
       alert('Title and content are required.');
       setIsSaving(false);
       return;
@@ -171,9 +178,9 @@ const Dashboard = () => {
               <div>
                 <h3 className="note-title">{note.title}</h3>
                 <p className="note-preview">
-                  {note.content.replace(/<[^>]+>/g, '').length > 100 
-                    ? note.content.replace(/<[^>]+>/g, '').substring(0, 100) + '...' 
-                    : note.content.replace(/<[^>]+>/g, '')}
+                  {extractTextFromHTML(note.content).length > 100 
+                    ? extractTextFromHTML(note.content).substring(0, 100) + '...' 
+                    : extractTextFromHTML(note.content)}
                 </p>
               </div>
 
@@ -224,6 +231,7 @@ const Dashboard = () => {
             <div className="input-group" style={{ marginBottom: '50px' }}>
               <label htmlFor="newContent">Content</label>
               <ReactQuill
+                id="newContent"
                 theme="snow"
                 value={newContent}
                 onChange={setNewContent}
