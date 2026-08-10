@@ -177,11 +177,18 @@ const Dashboard = () => {
             <div key={note.id} className="glass-card note-card">
               <div>
                 <h3 className="note-title">{note.title}</h3>
-                <p className="note-preview">
-                  {extractTextFromHTML(note.content).length > 100 
-                    ? extractTextFromHTML(note.content).substring(0, 100) + '...' 
-                    : extractTextFromHTML(note.content)}
-                </p>
+                <div 
+                  className="note-preview ql-editor"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    padding: 0,
+                    cursor: 'pointer'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
               </div>
 
               <div className="note-footer">
