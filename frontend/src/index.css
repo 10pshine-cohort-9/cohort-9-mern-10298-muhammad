@@ -262,3 +262,39 @@ body {
 .btn-icon:hover {
   color: var(--primary-color);
 }
+
+/* Fix ReactQuill List markers */
+/* Quill uses <ol data-list='bullet'|'ordered'> so the browser adds its own
+   native number on top of Quill's ::before pseudo-element. Suppress native. */
+.ql-editor ol,
+.ql-editor ul {
+  list-style: none !important;
+  padding-left: 1.5em;
+}
+
+.ql-editor li {
+  list-style-type: none !important;
+}
+
+/* Restore Quill's own bullet rendering via its data-list pseudo-element */
+.ql-editor li[data-list='bullet']::before {
+  content: '\2022' !important; /* solid bullet • */
+  font-size: 1.1em;
+  margin-right: 0.5em;
+  color: var(--text-main);
+}
+
+.ql-editor li[data-list='ordered'] {
+  counter-increment: list-0;
+}
+
+.ql-editor li[data-list='ordered']::before {
+  content: counter(list-0, decimal) '. ' !important;
+  margin-right: 0.5em;
+  color: var(--text-main);
+}
+
+/* Reset counter at each new ordered list block */
+.ql-editor ol {
+  counter-reset: list-0;
+}

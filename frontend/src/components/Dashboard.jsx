@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+const extractTextFromHTML = (html) => {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent.trim();
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  // All our state variables
   const [notes, setNotes] = useState([]);
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -49,14 +56,13 @@ const Dashboard = () => {
           localStorage.removeItem('token');
           navigate('/login');
         }
-      } catch (err) {
+      } catch {
         console.error('Failed to fetch notes');
       }
     };
     fetchNotes();
   }, [navigate]);
 
-  // Handle Deleting a note
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('token');
@@ -69,12 +75,11 @@ const Dashboard = () => {
       } else {
         alert('Failed to delete note on server');
       }
-    } catch (err) {
+    } catch {
       alert('Network error while deleting note');
     }
   };
 
-  // Handle Logging out
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -85,8 +90,9 @@ const Dashboard = () => {
     setIsSaving(true);
     const token = localStorage.getItem('token');
     const payload = { title: newTitle?.trim(), content: newContent?.trim() };
+    const textContent = extractTextFromHTML(payload.content);
 
-    if (!payload.title || !payload.content) {
+    if (!payload.title || !textContent) {
       alert('Title and content are required.');
       setIsSaving(false);
       return;
@@ -124,7 +130,7 @@ const Dashboard = () => {
       } else {
         alert(data.error || 'Could not save note');
       }
-    } catch (err) {
+    } catch {
       alert('Network error. Could not save note.');
     } finally {
       setIsSaving(false);
@@ -168,9 +174,18 @@ const Dashboard = () => {
             <div key={note.id} className="glass-card note-card">
               <div>
                 <h3 className="note-title">{note.title}</h3>
-                <p className="note-preview">
-                  {note.content.length > 100 ? note.content.substring(0, 100) + '...' : note.content}
-                </p>
+                <div 
+                  className="note-preview ql-editor"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    padding: 0,
+                    cursor: 'pointer'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
               </div>
 
               <div className="note-footer">
@@ -217,16 +232,15 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: '50px' }}>
               <label htmlFor="newContent">Content</label>
-              <textarea
+              <ReactQuill
                 id="newContent"
-                className="input-field"
-                rows={4}
-                placeholder="What do you want to remember?"
+                theme="snow"
                 value={newContent}
-                onChange={e => setNewContent(e.target.value)}
-                required
+                onChange={setNewContent}
+                placeholder="What do you want to remember?"
+                style={{ height: '150px' }}
               />
             </div>
 
