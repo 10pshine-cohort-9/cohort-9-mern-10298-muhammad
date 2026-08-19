@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, LogOut, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, LogOut, FileText, User, Search } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -19,12 +19,21 @@ const Dashboard = () => {
   const [newContent, setNewContent] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showProfile, setShowProfile] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const lastActiveElement = useRef(null);
+
+  const filteredNotes = notes.filter(note => {
+    const query = searchQuery.toLowerCase();
+    return note.title.toLowerCase().includes(query) || extractTextFromHTML(note.content).toLowerCase().includes(query);
+  });
 
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
         setShowNew(false);
+        setShowProfile(false);
         setTimeout(() => lastActiveElement.current?.focus(), 0);
       }
     };
@@ -83,6 +92,23 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleOpenProfile = async (e) => {
+    lastActiveElement.current = e.currentTarget;
+    setShowProfile(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUserProfile(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile', err);
+    }
   };
 
   const handleSaveNote = async () => {
@@ -148,7 +174,18 @@ const Dashboard = () => {
             <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Manage your daily tasks and thoughts.</p>
           </div>
 
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="search-bar" style={{ display: 'flex', alignItems: 'center', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 12px', gap: '8px' }}>
+              <Search size={16} color="var(--text-muted)" />
+              <input 
+                type="text" 
+                placeholder="Search notes..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', outline: 'none', width: '200px' }}
+              />
+            </div>
+
             <button
               className="btn-primary"
               onClick={(e) => {
@@ -163,14 +200,18 @@ const Dashboard = () => {
               <Plus size={18} /> New Note
             </button>
 
-            <button onClick={handleLogout} aria-label="Log out" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-              <LogOut size={18} />
+            <button onClick={handleOpenProfile} aria-label="User Profile" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <User size={18} />
             </button>
           </div>
         </header>
 
         <main className="notes-grid">
-          {notes.map(note => (
+          {filteredNotes.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
+              {searchQuery ? 'No notes match your search.' : 'No notes yet. Create one!'}
+            </p>
+          ) : filteredNotes.map(note => (
             <div key={note.id} className="glass-card note-card">
               <div>
                 <h3 className="note-title">{note.title}</h3>
@@ -254,6 +295,58 @@ const Dashboard = () => {
               }}>
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showProfile && (
+        <div className="modal-backdrop" onClick={(e) => { if(e.target.className === 'modal-backdrop') setShowProfile(false); }}>
+          <div className="glass-card modal-content" role="dialog" aria-modal="true" style={{ maxWidth: '400px', padding: 0, overflow: 'hidden' }}>
+            
+            {/* Top banner background */}
+            <div style={{ height: '100px', background: 'linear-gradient(135deg, var(--primary-color), #8a2be2)', position: 'relative' }}>
+               <div style={{ 
+                 position: 'absolute', bottom: '-40px', left: '50%', transform: 'translateX(-50%)',
+                 width: '80px', height: '80px', borderRadius: '50%', background: 'var(--card-bg)', border: '4px solid var(--bg-color)',
+                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' 
+               }}>
+                 <User size={40} />
+               </div>
+            </div>
+
+            <div style={{ padding: '50px 30px 30px', textAlign: 'center' }}>
+              {userProfile ? (
+                <>
+                  <h2 style={{ marginBottom: '5px', fontSize: '1.5rem' }}>{userProfile.full_name}</h2>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>{userProfile.email}</p>
+                  
+                  {/* Stats Row */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '30px', margin: '20px 0 30px', padding: '15px 0', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-color)' }}>{notes.length}</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Notes</p>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-color)' }}>{new Date(userProfile.created_at).getFullYear()}</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Joined</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: 'var(--text-muted)', margin: '40px 0' }}>Loading profile...</p>
+              )}
+
+              <div className="modal-actions" style={{ justifyContent: 'center', gap: '15px' }}>
+                <button className="btn-secondary" onClick={() => {
+                  setShowProfile(false);
+                  setTimeout(() => lastActiveElement.current?.focus(), 0);
+                }}>
+                  Close
+                </button>
+                <button className="btn-primary" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--error)' }}>
+                  <LogOut size={18} /> Log Out
+                </button>
+              </div>
             </div>
           </div>
         </div>
