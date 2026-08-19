@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfile, setShowProfile] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [profileError, setProfileError] = useState(null);
   const lastActiveElement = useRef(null);
 
   const filteredNotes = notes.filter(note => {
@@ -97,17 +98,33 @@ const Dashboard = () => {
   const handleOpenProfile = async (e) => {
     lastActiveElement.current = e.currentTarget;
     setShowProfile(true);
+    setUserProfile(null);
+    setProfileError(null);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+
       const data = await res.json();
-      if (data.success) {
-        setUserProfile(data.data);
+      if (res.ok && data.success) {
+        const p = data.data;
+        if (p && p.id && p.full_name && p.email && p.created_at) {
+          setUserProfile(p);
+        } else {
+          setProfileError('Invalid profile data received');
+        }
+      } else {
+        setProfileError(data.error || 'Failed to load profile');
       }
     } catch (err) {
       console.error('Failed to fetch profile', err);
+      setProfileError('Network error while loading profile');
     }
   };
 
@@ -315,7 +332,9 @@ const Dashboard = () => {
             </div>
 
             <div style={{ padding: '50px 30px 30px', textAlign: 'center' }}>
-              {userProfile ? (
+              {profileError ? (
+                <p style={{ color: 'var(--error)', margin: '40px 0' }}>{profileError}</p>
+              ) : userProfile ? (
                 <>
                   <h2 style={{ marginBottom: '5px', fontSize: '1.5rem' }}>{userProfile.full_name}</h2>
                   <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>{userProfile.email}</p>
