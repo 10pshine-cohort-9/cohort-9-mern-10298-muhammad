@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, LogOut, FileText, User, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, LogOut, FileText, User, Search, Download, Upload } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const lastActiveElement = useRef(null);
+  const fileInputRef = useRef(null);
 
   const filteredNotes = notes.filter(note => {
     const query = searchQuery.toLowerCase();
@@ -93,6 +94,67 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleExport = () => {
+    if (notes.length === 0) {
+      alert('No notes to export.');
+      return;
+    }
+    const dataStr = JSON.stringify(notes, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'notes_export.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const importedNotes = JSON.parse(event.target.result);
+        if (!Array.isArray(importedNotes)) throw new Error('Invalid format');
+
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/notes/import`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ notes: importedNotes })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert(`Successfully imported ${data.data.importedCount} notes!`);
+          fetchNotes();
+        } else {
+          alert(data.error || 'Failed to import notes');
+        }
+      } catch (err) {
+        alert('Failed to parse file. Please ensure it is a valid JSON export.');
+      }
+      
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
   };
 
   const handleOpenProfile = async (e) => {
@@ -216,6 +278,15 @@ const Dashboard = () => {
             >
               <Plus size={18} /> New Note
             </button>
+
+            <button onClick={handleExport} aria-label="Export Notes" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <Download size={18} />
+            </button>
+
+            <button onClick={handleImportClick} aria-label="Import Notes" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <Upload size={18} />
+            </button>
+            <input type="file" accept=".json" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
 
             <button onClick={handleOpenProfile} aria-label="User Profile" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
               <User size={18} />

@@ -88,3 +88,28 @@ export const deleteNote = async (req, res, next) => {
     next(error);
   }
 };
+
+export const importNotes = async (req, res, next) => {
+  try {
+    const { notes } = req.body;
+    
+    if (!notes || !Array.isArray(notes) || notes.length === 0) {
+      return res.status(400).json({ success: false, error: 'Please provide an array of notes' });
+    }
+
+    const values = notes.map(note => [
+      req.user.id,
+      note.title || 'Untitled Note',
+      note.content || ''
+    ]);
+
+    const [result] = await pool.query(
+      'INSERT INTO notes (user_id, title, content) VALUES ?',
+      [values]
+    );
+
+    res.status(201).json({ success: true, data: { importedCount: result.affectedRows } });
+  } catch (error) {
+    next(error);
+  }
+};
