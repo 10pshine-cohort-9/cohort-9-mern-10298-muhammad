@@ -57,7 +57,7 @@ const Dashboard = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        if (Array.isArray(data.data) && data.data.every(n => n && typeof n === 'object' && n.title && n.content)) {
+        if (Array.isArray(data.data) && data.data.every(n => n && typeof n === 'object' && typeof n.title === 'string' && typeof n.content === 'string')) {
           setNotes(data.data);
         } else {
           console.error('Invalid data format received');
@@ -105,9 +105,17 @@ const Dashboard = () => {
     }
     
     const zip = new JSZip();
+    const usedNames = new Set();
     notes.forEach(note => {
       // Create a valid filename from the title
-      const filename = (note.title || 'Untitled').replace(/[\\/:*?"<>|]/g, '_') + '.txt';
+      let baseFilename = (note.title || 'Untitled').replace(/[\\/:*?"<>|]/g, '_');
+      let filename = baseFilename + '.txt';
+      let counter = 1;
+      while (usedNames.has(filename)) {
+        filename = `${baseFilename} (${counter}).txt`;
+        counter++;
+      }
+      usedNames.add(filename);
       const content = extractTextFromHTML(note.content);
       zip.file(filename, content);
     });
@@ -134,19 +142,19 @@ const Dashboard = () => {
   };
 
   const handleFileChange = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    const importedNotes = [];
-    
-    // Read all files
-    for (const file of files) {
-      const text = await file.text();
-      const title = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-      importedNotes.push({ title, content: text });
-    }
-
     try {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      const importedNotes = [];
+      
+      // Read all files
+      for (const file of files) {
+        const text = await file.text();
+        const title = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+        importedNotes.push({ title, content: text });
+      }
+
       // Validate schema on frontend before sending
       const isValid = importedNotes.every(note => 
         note && typeof note === 'object' && 
@@ -174,9 +182,9 @@ const Dashboard = () => {
       }
     } catch (err) {
       alert('Failed to import files: ' + err.message);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-    
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleOpenProfile = async (e) => {

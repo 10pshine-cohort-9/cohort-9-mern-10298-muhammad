@@ -64,11 +64,13 @@ export const updateNote = async (req, res, next) => {
     const updates = [];
     const values = [];
     
-    if (title !== undefined && typeof title === 'string') {
+    if (title !== undefined) {
+      if (typeof title !== 'string') return res.status(400).json({ success: false, error: 'Title must be a string' });
       updates.push('title = ?');
       values.push(title);
     }
-    if (content !== undefined && typeof content === 'string') {
+    if (content !== undefined) {
+      if (typeof content !== 'string') return res.status(400).json({ success: false, error: 'Content must be a string' });
       updates.push('content = ?');
       values.push(sanitizeContent(content));
     }
