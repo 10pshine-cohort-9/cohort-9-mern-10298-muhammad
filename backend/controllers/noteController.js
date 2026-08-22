@@ -1,4 +1,23 @@
 import pool from '../config/db.js';
+import sanitizeHtml from 'sanitize-html';
+
+const sanitizeOptions = {
+  allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'p', 'br', 'strong', 'em', 'u', 's', 'blockquote', 'code', 'pre']),
+  allowedAttributes: {
+    ...sanitizeHtml.defaults.allowedAttributes,
+    '*': ['style', 'class'],
+    'img': ['src', 'alt', 'width', 'height']
+  }
+};
+
+const sanitizeContent = (content) => {
+  if (typeof content !== 'string') return '';
+  return sanitizeHtml(content, sanitizeOptions);
+};
+
+const isValidNote = (note) => {
+  return note && typeof note === 'object' && typeof note.title === 'string' && typeof note.content === 'string';
+};
 
 export const getNotes = async (req, res, next) => {
   try {
@@ -13,13 +32,15 @@ export const createNote = async (req, res, next) => {
   try {
     const { title, content } = req.body;
     
-    if (!title) {
-      return res.status(400).json({ success: false, error: 'Please provide a title' });
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ success: false, error: 'Please provide a valid title' });
     }
+
+    const safeContent = sanitizeContent(content || '');
 
     const [result] = await pool.query(
       'INSERT INTO notes (user_id, title, content) VALUES (?, ?, ?)',
-      [req.user.id, title, content || '']
+      [req.user.id, title, safeContent]
     );
 
     const [newNote] = await pool.query('SELECT * FROM notes WHERE id = ?', [result.insertId]);
@@ -43,13 +64,13 @@ export const updateNote = async (req, res, next) => {
     const updates = [];
     const values = [];
     
-    if (title !== undefined) {
+    if (title !== undefined && typeof title === 'string') {
       updates.push('title = ?');
       values.push(title);
     }
-    if (content !== undefined) {
+    if (content !== undefined && typeof content === 'string') {
       updates.push('content = ?');
-      values.push(content);
+      values.push(sanitizeContent(content));
     }
 
     if (updates.length > 0) {
@@ -97,10 +118,15 @@ export const importNotes = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide an array of notes' });
     }
 
+    const isValid = notes.every(isValidNote);
+    if (!isValid) {
+      return res.status(400).json({ success: false, error: 'Invalid note format in array' });
+    }
+
     const values = notes.map(note => [
       req.user.id,
-      note.title || 'Untitled Note',
-      note.content || ''
+      note.title,
+      sanitizeContent(note.content)
     ]);
 
     const [result] = await pool.query(

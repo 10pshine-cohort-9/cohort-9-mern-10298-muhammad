@@ -1,12 +1,12 @@
 # NoteMaster Pro
 
-NoteMaster Pro is a full-stack premium MERN (MySQL, Express, React, Node.js) application designed to securely capture, organize, and manage your ideas. This project is a comprehensive submission for Cohort 9 by Muhammad Shayan Mughal.
+NoteMaster Pro is a full-stack premium MySQL, Express, React, Node.js application designed to securely capture, organize, and manage your ideas. This project is a comprehensive submission for Cohort 9 by Muhammad Shayan Mughal.
 
 ## 🚀 Features Implemented
 
 1. **Premium Authentication System**
    - High-quality 50/50 split-screen login and registration UI with glassmorphism effects.
-   - Secure JWT (JSON Web Tokens) based authentication and route protection.
+   - Secure JWT-based authentication and route protection.
    - Password hashing and robust validation.
 
 2. **Advanced Notes Management (CRUD)**
@@ -21,8 +21,8 @@ NoteMaster Pro is a full-stack premium MERN (MySQL, Express, React, Node.js) app
    - Displays real-time data fetched from the backend (Name, Email, Account Creation Date).
 
 5. **Bulk Data Export / Import**
-   - Easily download all your notes as a portable `.json` file for backup.
-   - Instantly restore or bulk-import notes by uploading a `.json` file back into the dashboard.
+   - Easily download all your notes as a portable `.zip` of `.txt` files for backup.
+   - Instantly restore or bulk-import notes by uploading multiple `.txt` files back into the dashboard.
 
 6. **SonarQube Code Quality Integration**
    - Full code quality analysis setup configuration.

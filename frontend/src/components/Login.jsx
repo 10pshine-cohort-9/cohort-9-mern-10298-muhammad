@@ -52,7 +52,7 @@ const Login = () => {
 
       {/* Left Side: Hero Image & Branding */}
       <div className="auth-hero">
-        <img src={HeroImage} alt="Abstract Technology Background" className="auth-hero-img" />
+        <img src={HeroImage} alt="" aria-hidden="true" className="auth-hero-img" />
         <div className="auth-hero-overlay">
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px' }}>
             <NotebookPen size={48} color="#a855f7" />
@@ -85,7 +85,7 @@ const Login = () => {
                   id="fullName"
                   type="text"
                   className="input-field"
-                  placeholder="Enter Name"
+                  placeholder="e.g. John Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required

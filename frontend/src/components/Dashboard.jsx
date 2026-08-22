@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, LogOut, FileText, User, Search, Download, Upload } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
+import JSZip from 'jszip';
 import 'react-quill-new/dist/quill.snow.css';
 
 const extractTextFromHTML = (html) => {
@@ -43,36 +44,37 @@ const Dashboard = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
+  const fetchNotes = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
 
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/notes`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        if (response.ok) {
-          if (Array.isArray(data.data) && data.data.every(n => n.title && n.content && (n.date || n.created_at))) {
-            setNotes(data.data);
-          } else {
-            console.error('Invalid data format received');
-            setNotes([]);
-          }
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/notes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        if (Array.isArray(data.data) && data.data.every(n => n && typeof n === 'object' && n.title && n.content)) {
+          setNotes(data.data);
         } else {
-          localStorage.removeItem('token');
-          navigate('/login');
+          console.error('Invalid data format received');
+          setNotes([]);
         }
-      } catch {
-        console.error('Failed to fetch notes');
+      } else {
+        localStorage.removeItem('token');
+        navigate('/login');
       }
-    };
-    fetchNotes();
+    } catch {
+      console.error('Failed to fetch notes');
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
 
   const handleDelete = async (id) => {
     try {
@@ -96,22 +98,33 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (notes.length === 0) {
       alert('No notes to export.');
       return;
     }
-    const dataStr = JSON.stringify(notes, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
     
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'notes_export.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const zip = new JSZip();
+    notes.forEach(note => {
+      // Create a valid filename from the title
+      const filename = (note.title || 'Untitled').replace(/[\\/:*?"<>|]/g, '_') + '.txt';
+      const content = extractTextFromHTML(note.content);
+      zip.file(filename, content);
+    });
+
+    try {
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'notes_export.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to generate zip file');
+    }
   };
 
   const handleImportClick = () => {
@@ -121,40 +134,49 @@ const Dashboard = () => {
   };
 
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const importedNotes = JSON.parse(event.target.result);
-        if (!Array.isArray(importedNotes)) throw new Error('Invalid format');
+    const importedNotes = [];
+    
+    // Read all files
+    for (const file of files) {
+      const text = await file.text();
+      const title = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      importedNotes.push({ title, content: text });
+    }
 
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/notes/import`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ notes: importedNotes })
-        });
-        
-        const data = await res.json();
-        if (data.success) {
-          alert(`Successfully imported ${data.data.importedCount} notes!`);
-          fetchNotes();
-        } else {
-          alert(data.error || 'Failed to import notes');
-        }
-      } catch (err) {
-        alert('Failed to parse file. Please ensure it is a valid JSON export.');
-      }
+    try {
+      // Validate schema on frontend before sending
+      const isValid = importedNotes.every(note => 
+        note && typeof note === 'object' && 
+        typeof note.title === 'string' && typeof note.content === 'string'
+      );
       
-      // Reset input
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-    reader.readAsText(file);
+      if (!isValid) throw new Error('Invalid note format');
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notes/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notes: importedNotes })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert(`Successfully imported ${data.data.importedCount} notes!`);
+        fetchNotes();
+      } else {
+        alert(data.error || 'Failed to import notes');
+      }
+    } catch (err) {
+      alert('Failed to import files: ' + err.message);
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleOpenProfile = async (e) => {
@@ -286,7 +308,7 @@ const Dashboard = () => {
             <button onClick={handleImportClick} aria-label="Import Notes" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
               <Upload size={18} />
             </button>
-            <input type="file" accept=".json" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
+            <input type="file" accept=".txt" multiple style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
 
             <button onClick={handleOpenProfile} aria-label="User Profile" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
               <User size={18} />
