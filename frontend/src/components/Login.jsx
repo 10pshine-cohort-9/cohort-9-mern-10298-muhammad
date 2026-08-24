@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { ArrowRight, NotebookPen } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import HeroImage from '../assets/login_hero.jpg';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -48,74 +49,94 @@ const Login = () => {
 
   return (
     <div className="auth-container animate-fade-in">
-      <div className="glass-card auth-box">
-        <h1 className="auth-logo">NoteMaster Pro</h1>
-        <p className="auth-subtitle">
-          {isLogin ? 'Welcome back. Let\'s get to work.' : 'Create your account to start managing notes.'}
-        </p>
 
-        <form onSubmit={handleSubmit}>
-          {error && <div role="alert" style={{ color: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '5px', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
+      {/* Left Side: Hero Image & Branding */}
+      <div className="auth-hero">
+        <img src={HeroImage} alt="" aria-hidden="true" className="auth-hero-img" />
+        <div className="auth-hero-overlay">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px' }}>
+            <NotebookPen size={48} color="#a855f7" />
+            <h1 className="auth-logo" style={{ marginBottom: 0, fontSize: '2.5rem', textAlign: 'left' }}>NoteMaster Pro</h1>
+          </div>
+          <h2 className="auth-hero-title">Organize your thoughts.<br />Secure your ideas.</h2>
+          <p className="auth-hero-text">
+            Join thousands of professionals who use NoteMaster Pro to capture, organize, and execute on their best ideas every single day.
+          </p>
+        </div>
+      </div>
 
-          {!isLogin && (
+      {/* Right Side: Auth Form */}
+      <div className="auth-form-wrapper">
+        <div className="glass-card auth-box">
+          <h2 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '10px' }}>
+            {isLogin ? 'Welcome back' : 'Create an account'}
+          </h2>
+          <p className="auth-subtitle" style={{ textAlign: 'left', marginBottom: '30px' }}>
+            {isLogin ? 'Enter your details to access your notes.' : 'Start managing your notes securely today.'}
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            {error && <div role="alert" style={{ color: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '5px', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
+
+            {!isLogin && (
+              <div className="input-group">
+                <label htmlFor="fullName">Full Name</label>
+                <input
+                  id="fullName"
+                  type="text"
+                  className="input-field"
+                  placeholder="e.g. John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
             <div className="input-group">
-              <label htmlFor="fullName">Full Name</label>
+              <label htmlFor="email">Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="email"
+                  type="email"
+                  className="input-field"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="password">Password</label>
               <input
-                id="fullName"
-                type="text"
+                id="password"
+                type="password"
                 className="input-field"
-                placeholder="John Doe"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-          )}
 
+            <button type="submit" className="btn-primary" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '14px' }}>
+              {isLogin ? 'Sign In' : 'Create Account'}
+              <ArrowRight size={18} />
+            </button>
+          </form>
 
-          <div className="input-group">
-            <label htmlFor="email">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                id="email"
-                type="email"
-                className="input-field"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+          <div style={{ marginTop: '30px', fontSize: '0.95rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: '600', background: 'none', border: 'none', padding: 0, fontSize: '0.95rem', fontFamily: 'inherit' }}
+            >
+              {isLogin ? 'Sign up here' : 'Log in here'}
+            </button>
           </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              className="input-field"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn-primary" style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-            {isLogin ? 'Sign In' : 'Create Account'}
-            <ArrowRight size={18} />
-          </button>
-        </form>
-
-        <div style={{ marginTop: '25px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: '600', background: 'none', border: 'none', padding: 0, fontSize: '0.9rem', fontFamily: 'inherit' }}
-          >
-            {isLogin ? 'Sign up here' : 'Log in here'}
-          </button>
         </div>
       </div>
     </div>

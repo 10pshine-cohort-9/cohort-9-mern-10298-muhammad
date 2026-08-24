@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, LogOut, FileText, User, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, LogOut, FileText, User, Search, Download, Upload } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
+import JSZip from 'jszip';
 import 'react-quill-new/dist/quill.snow.css';
 
 const extractTextFromHTML = (html) => {
@@ -24,6 +25,7 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const lastActiveElement = useRef(null);
+  const fileInputRef = useRef(null);
 
   const filteredNotes = notes.filter(note => {
     const query = searchQuery.toLowerCase();
@@ -42,36 +44,37 @@ const Dashboard = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
+  const fetchNotes = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
 
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/notes`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        if (response.ok) {
-          if (Array.isArray(data.data) && data.data.every(n => n.title && n.content && (n.date || n.created_at))) {
-            setNotes(data.data);
-          } else {
-            console.error('Invalid data format received');
-            setNotes([]);
-          }
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/notes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        if (Array.isArray(data.data) && data.data.every(n => n && typeof n === 'object' && typeof n.title === 'string' && typeof n.content === 'string')) {
+          setNotes(data.data);
         } else {
-          localStorage.removeItem('token');
-          navigate('/login');
+          console.error('Invalid data format received');
+          setNotes([]);
         }
-      } catch {
-        console.error('Failed to fetch notes');
+      } else {
+        localStorage.removeItem('token');
+        navigate('/login');
       }
-    };
-    fetchNotes();
+    } catch {
+      console.error('Failed to fetch notes');
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
 
   const handleDelete = async (id) => {
     try {
@@ -93,6 +96,95 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleExport = async () => {
+    if (notes.length === 0) {
+      alert('No notes to export.');
+      return;
+    }
+    
+    const zip = new JSZip();
+    const usedNames = new Set();
+    notes.forEach(note => {
+      // Create a valid filename from the title
+      let baseFilename = (note.title || 'Untitled').replace(/[\\/:*?"<>|]/g, '_');
+      let filename = baseFilename + '.txt';
+      let counter = 1;
+      while (usedNames.has(filename)) {
+        filename = `${baseFilename} (${counter}).txt`;
+        counter++;
+      }
+      usedNames.add(filename);
+      const content = extractTextFromHTML(note.content);
+      zip.file(filename, content);
+    });
+
+    try {
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'notes_export.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to generate zip file');
+    }
+  };
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    try {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      const importedNotes = [];
+      
+      // Read all files
+      for (const file of files) {
+        const text = await file.text();
+        const title = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+        importedNotes.push({ title, content: text });
+      }
+
+      // Validate schema on frontend before sending
+      const isValid = importedNotes.every(note => 
+        note && typeof note === 'object' && 
+        typeof note.title === 'string' && typeof note.content === 'string'
+      );
+      
+      if (!isValid) throw new Error('Invalid note format');
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notes/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notes: importedNotes })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert(`Successfully imported ${data.data.importedCount} notes!`);
+        fetchNotes();
+      } else {
+        alert(data.error || 'Failed to import notes');
+      }
+    } catch (err) {
+      alert('Failed to import files: ' + err.message);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleOpenProfile = async (e) => {
@@ -216,6 +308,15 @@ const Dashboard = () => {
             >
               <Plus size={18} /> New Note
             </button>
+
+            <button onClick={handleExport} aria-label="Export Notes" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <Download size={18} />
+            </button>
+
+            <button onClick={handleImportClick} aria-label="Import Notes" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <Upload size={18} />
+            </button>
+            <input type="file" accept=".txt" multiple style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
 
             <button onClick={handleOpenProfile} aria-label="User Profile" className="glass-card" style={{ border: '1px solid var(--border-color)', background: 'transparent', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
               <User size={18} />
